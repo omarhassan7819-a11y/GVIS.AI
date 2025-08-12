@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GVIS.AI</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: gold;
+    }
+    button {
+      background-color: yellow;
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+    button:hover {
+      opacity: 0.8;
+    }
+    input, textarea {
+      padding: 8px;
+      width: 80%;
+      margin: 10px auto;
+      display: block;
+      border-radius: 5px;
+      border: none;
+    }
+    .result {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>GVIS.AI</h1>
+  <textarea id="textInput" placeholder="اكتب النص هنا..."></textarea>
+
+  <button onclick="textToSpeech()">تحويل النص إلى صوت</button>
+  <button onclick="textToImage()">تحويل النص إلى صورة</button>
+  <button onclick="textToVideo()">تحويل النص إلى فيديو</button>
+
+  <div class="result" id="result"></div>
+
+  <script>
+    async function textToSpeech() {
+      const text = document.getElementById("textInput").value;
+      const res = await fetch("/text-to-speech", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerHTML = `<audio controls src="${data.audioUrl}"></audio>`;
+    }
+
+    async function textToImage() {
+      const text = document.getElementById("textInput").value;
+      const res = await fetch("/text-to-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerHTML = `<img src="${data.imageUrl}" width="300"/>`;
+    }
+
+    async function textToVideo() {
+      const text = document.getElementById("textInput").value;
+      const res = await fetch("/text-to-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerHTML = `<video controls width="300" src="${data.videoUrl}"></video>`;
+    }
+  </script>
+</body>
+</html>
