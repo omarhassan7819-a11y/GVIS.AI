@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>GVIS.AI — مولد الفيديو</title>
+<style>
+:root{--bg:#0b0b0c;--card:#0f1720;--muted:#9aa3ad;--accent:#ffd54a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#e6eef6;font-family:Arial, sans-serif}
+.container{max-width:1100px;margin:18px auto;padding:18px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{margin:0;font-size:20px}
+.balance{background:#0b1220;padding:8px 12px;border-radius:10px;border:1px solid #17202a}
+.plans{display:flex;gap:12px;margin-top:12px}
+.plan{background:#111827;padding:12px;border-radius:12px;flex:1}
+.badge-free{background:#fff;color:#000;padding:6px 10px;border-radius:999px;font-weight:800}
+.badge-pro{background:linear-gradient(135deg,#f7d976,#e6b800);color:#1a1200;padding:6px 10px;border-radius:12px;font-weight:800}
+.badge-ultra{background:linear-gradient(90deg,#7b61ff,#ff5ac1,#3de4ff);color:#fff;padding:6px 10px;border-radius:12px;font-weight:800}
+.ops{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.op-btn{background:var(--accent);color:#000;padding:12px;border-radius:12px;font-weight:800;border:0;cursor:pointer}
+.panel{background:#0f1720;padding:12px;border-radius:12px;margin-top:12px}
+textarea{width:100%;padding:10px;border-radius:8px;background:#071018;border:1px solid #162022;color:#e6eef6}
+input[type=number]{width:100%;padding:10px;border-radius:8px;background:#071018;border:1px solid #162022;color:#e6eef6}
+.run{background:#16a34a;color:#fff;padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:800}
+.outputs{margin-top:14px}
+.output{background:#0c1720;padding:10px;border-radius:10px;margin-bottom:10px}
+.small{color:var(--muted);font-size:13px}
+.lang-select{background:#071018;color:#e6eef6;padding:8px;border-radius:8px;border:1px solid #162022}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>GVIS.AI — مولد الفيديو</h1>
+      <div class="small">نسخة مجانية — تحويل النص إلى صوت/فيديو (حد أقصى 2 دقيقة)</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="lang" class="lang-select"><option value="ar">العربية</option><option value="en">English</option></select>
+      <div class="balance" id="balance">الرصيد: 100 كريدت</div>
+    </div>
+  </div>
+
+  <div class="plans" id="plans">
+    <div class="plan"><div class="badge-free">مجاني</div><h3>مجاني</h3><div class="small">2 دقيقة فيديو • 100 كريدت بداية</div></div>
+    <div class="plan"><div class="badge-pro">برو</div><h3>برو</h3><div class="small">قريبا</div></div>
+    <div class="plan"><div class="badge-ultra">الترا</div><h3>الترا</h3><div class="small">قريبا</div></div>
+  </div>
+
+  <div class="ops" id="ops">
+    <button class="op-btn" data-op="text-to-speech" onclick="selectOp('text-to-speech')">نص → صوت</button>
+    <button class="op-btn" data-op="text-to-image" onclick="selectOp('text-to-image')">نص → صورة</button>
+    <button class="op-btn" data-op="text-to-video" onclick="selectOp('text-to-video')">نص → فيديو</button>
+  </div>
+
+  <div class="panel" id="panel">
+    <div id="op-title" style="font-weight:800">اختر عملية</div>
+    <div id="op-form" style="display:none;margin-top:10px">
+      <textarea id="txt" rows="6" placeholder="اكتب النص هنا..."></textarea>
+
+      <div id="video-options" style="display:none;margin-top:8px">
+        <label class="small">مدة الفيديو (دقائق)</label>
+        <input type="number" id="minutes" min="1" value="1" />
+        <label class="small"><input type="checkbox" id="audiofx" checked/> إضافة مؤثرات صوتية (+15 كريدت)</label>
+        <div class="small">الحد الأقصى في الخطة: 2 دقيقة</div>
+      </div>
+
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <button class="run" id="run-btn">تنفيذ</button>
+        <div id="status" class="small"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="outputs" id="outputs"></div>
+  <div class="footer small">لتشغيل هذا المشروع على الخادم تحتاج ffmpeg وespeak مثبتين. سأعطيك خطوات النشر بعد رفع الملفات.</div>
+</div>
+
+<script>
+let currentPlan = 'free';
+let credits = 100;
+document.getElementById('balance').textContent = 'الرصيد: ' + credits + ' كريدت';
+
+function selectOp(op){
+  document.getElementById('op-title').textContent = ({'text-to-speech':'نص → صوت','text-to-image':'نص → صورة','text-to-video':'نص → فيديو'})[op];
+  document.getElementById('op-form').style.display = 'block';
+  document.getElementById('video-options').style.display = op==='text-to-video' ? 'block' : 'none';
+  window.selectedOp = op;
+}
+
+document.getElementById('run-btn').addEventListener('click', async ()=>{
+  const op = window.selectedOp;
+  if(!op){ alert('اختر عملية'); return; }
+  const text = document.getElementById('txt').value || '';
+  if(!text.trim()){ alert('اكتب نص'); return; }
+  const lang = document.getElementById('lang').value || 'ar';
+
+  if(op==='text-to-speech'){
+    const cost = 15;
+    if(credits < cost){ alert('رصيد غير كافي'); return; }
+    credits -= cost; updateBalance();
+    document.getElementById('status').textContent = 'جارٍ إنشاء الصوت...';
+    try{
+      const resp = await fetch('/api/tts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text, lang })});
+      if(!resp.ok) throw new Error('failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      showOutput({type:'audio',label:'ملف صوتي', data:url});
+      document.getElementById('status').textContent = 'تم الإنشاء.';
+    }catch(err){ document.getElementById('status').textContent = 'خطأ أثناء الإنشاء.'; alert('خطأ: تأكد أن الخادم يعمل وأن espeak متوفر.') }
+  } else if(op==='text-to-video'){
+    const minutes = parseInt(document.getElementById('minutes').value || '1',10);
+    const includeAudioFX = document.getElementById('audiofx').checked;
+    if(minutes > 2){ alert('الحد الأقصى للخطة المجانية هو 2 دقيقة'); return; }
+    const cost = 20 * minutes + (includeAudioFX?15:0);
+    if(credits < cost){ alert('رصيد غير كافي'); return; }
+    credits -= cost; updateBalance();
+    document.getElementById('status').textContent = 'جارٍ إنشاء الفيديو...';
+    try{
+      const resp = await fetch('/api/video', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text, lang, minutes, title:'GVIS.AI Video', includeAudioFX })});
+      if(!resp.ok){ const j = await resp.json().catch(()=>null); throw new Error(j && j.error ? j.error : 'failed'); }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      showOutput({type:'video',label:`فيديو (${minutes} د)`, data:url});
+      document.getElementById('status').textContent = 'تم الإنشاء.';
+    }catch(err){ document.getElementById('status').textContent = 'خطأ أثناء الإنشاء.'; alert('خطأ: تأكد أن الخادم يعمل وأن ffmpeg وespeak متوفران.') }
+  } else if(op==='text-to-image'){
+    const cost = 15;
+    if(credits < cost){ alert('رصيد غير كافي'); return; }
+    credits -= cost; updateBalance();
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='1280' height='720'><rect width='100%' height='100%' fill='#0b1220'/><text x='50%' y='50%' font-size='42' fill='#fff' dominant-baseline='middle' text-anchor='middle'>${escapeHtml(document.getElementById('txt').value)}</text></svg>`;
+    const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    showOutput({type:'image',label:'صورة مُنشأة', data:url});
+    document.getElementById('status').textContent = 'تم الإنشاء.';
+  }
+});
+
+function updateBalance(){ document.getElementById('balance').textContent = 'الرصيد: ' + credits + ' كريدت'; }
+function showOutput(item){
+  const div = document.createElement('div'); div.className='output';
+  div.innerHTML = `<div style="font-weight:800">${item.label}</div>`;
+  if(item.type==='audio') div.innerHTML += `<audio controls src="${item.data}" style="width:100%"></audio><a class="button-inline" href="${item.data}" download="output.wav">تحميل الصوت</a>`;
+  if(item.type==='video') div.innerHTML += `<video controls src="${item.data}" style="width:100%;max-height:360px"></video><br/><a class="button-inline" href="${item.data}" download="output.mp4">تحميل الفيديو</a>`;
+  if(item.type==='image') div.innerHTML += `<img src="${item.data}" style="width:100%;margin-top:8px"/><a class="button-inline" href="${item.data}" download="image.svg">تحميل الصورة</a>`;
+  document.getElementById('outputs').prepend(div);
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+</script>
+</body>
+</html>
